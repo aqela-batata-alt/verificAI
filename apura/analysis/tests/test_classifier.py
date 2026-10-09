@@ -1,0 +1,93 @@
+"""
+Testes do fatiamento (RF12) com o tokenizer real e, opcionalmente, do modelo real.
+
+O teste com o modelo completo só roda com RUN_MODEL_TESTS=1 (carrega ~436 MB).
+"""
+
+import os
+import unittest
+from pathlib import Path
+
+from django.conf import settings
+from django.test import SimpleTestCase
+
+from analysis.services.classifier import plan_chunks
+
+MODEL_DIR = Path(settings.FAKE_EYES["MODEL_PATH"])
+
+
+@unittest.skipUnless((MODEL_DIR / "tokenizer.json").exists(), "tokenizer local ausente")
+class ChunkingTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        from transformers import AutoTokenizer
+
+        cls.tok = AutoTokenizer.from_pretrained(str(MODEL_DIR))
+
+    def _long_body(self):
+        parts = [f"Parágrafo número {i} descreve fatos ocorridos na cidade durante a semana." for i in range(60)]
+        return " ".join(["INICIO"] + parts[:30] + ["MEIO"] + parts[30:] + ["FIM"])
+
+    def test_short_text_single_chunk(self):
+        plan = plan_chunks(self.tok, "Título", "Sub", "Um texto curto de teste.", 128, 16)
+        self.assertEqual(len(plan.windows), 1)
+        self.assertEqual(plan.tokens_analyzed, plan.tokens_total)
+
+    def test_windows_respect_max_len_and_cover_all(self):
+        plan = plan_chunks(self.tok, "Título da notícia", "Subtítulo", self._long_body(), 128, 16)
+        self.assertGreater(len(plan.windows), 1)
+        self.assertTrue(all(len(w) <= 128 for w in plan.windows))
+        self.assertEqual(plan.tokens_analyzed, plan.tokens_total)
+        self.assertFalse(plan.prefix_truncated)
+
+    def test_title_beginning_middle_end_are_analyzed(self):
+        title = "Título exclusivo"
+        plan = plan_chunks(self.tok, title, "", self._long_body(), 128, 16)
+        decoded = [self.tok.decode(w) for w in plan.windows]
+        self.assertTrue(all(title in d for d in decoded), "título deve estar em todos os trechos")
+        joined = " ".join(decoded)
+        for marker in ("INICIO", "MEIO", "FIM"):
+            self.assertIn(marker, joined)
+
+    def test_deterministic(self):
+        a = plan_chunks(self.tok, "T", "S", self._long_body(), 128, 16)
+        b = plan_chunks(self.tok, "T", "S", self._long_body(), 128, 16)
+        self.assertEqual(a.windows, b.windows)
+
+    def test_long_prefix_is_truncated_and_flagged(self):
+        plan = plan_chunks(self.tok, "palavra " * 200, "", "Corpo do texto.", 128, 16)
+        self.assertTrue(plan.prefix_truncated)
+        self.assertTrue(all(len(w) <= 128 for w in plan.windows))
+
+    def test_no_window_starts_with_subword(self):
+        plan = plan_chunks(self.tok, "T", "", self._long_body(), 128, 16)
+        body_ids = self.tok("" + self._long_body(), add_special_tokens=False)["input_ids"]
+        tokens = self.tok.convert_ids_to_tokens(body_ids)
+        for start, _ in plan.body_spans:
+            self.assertFalse(tokens[start].startswith("##"))
+
+
+@unittest.skipUnless(os.environ.get("RUN_MODEL_TESTS") == "1", "defina RUN_MODEL_TESTS=1 para rodar")
+class RealModelTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        from analysis.services.classifier import BertFakeNewsClassifier
+
+        cls.clf = BertFakeNewsClassifier()
+
+    def test_readme_example_is_fake(self):
+        res = self.clf.classify(
+            "URGENTE: Nova substância milagrosa cura todas as doenças em 24h!",
+            "Médicos tentam esconder a receita secreta da população.",
+            "Compartilhe imediatamente antes que derrubem este artigo.",
+        )
+        self.assertEqual(res.label, "falsa")
+        self.assertGreater(res.fake_probability, 0.5)
+
+    def test_reproducible(self):
+        args = ("Governo anuncia medidas", "", "O Ministério da Fazenda divulgou hoje o novo pacote econômico.")
+        a, b = self.clf.classify(*args), self.clf.classify(*args)
+        self.assertAlmostEqual(a.fake_probability, b.fake_probability, places=4)
+        self.assertTrue(a.model_sha256)

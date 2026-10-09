@@ -1,0 +1,89 @@
+"""Testes de validação, idioma e privacidade (RF01, RF04, RF05)."""
+
+from django.test import SimpleTestCase
+
+from analysis.services.preprocessing import (
+    InputValidationError,
+    build_news_input,
+    detect_portuguese,
+    mask_pii,
+    normalize_text,
+    summarize_claim,
+)
+
+PT_TEXT = (
+    "O Ministério da Saúde anunciou nesta segunda-feira uma nova campanha de vacinação "
+    "contra a gripe, que será realizada em todos os estados do país até o fim do mês."
+)
+
+
+class ValidationTests(SimpleTestCase):
+    def test_valid_text(self):
+        news = build_news_input(PT_TEXT)
+        self.assertEqual(news.body, PT_TEXT)
+
+    def test_too_short(self):
+        with self.assertRaises(InputValidationError) as ctx:
+            build_news_input("Texto curto demais.")
+        self.assertEqual(ctx.exception.code, "text_too_short")
+
+    def test_too_long_is_rejected_not_truncated(self):
+        with self.assertRaises(InputValidationError) as ctx:
+            build_news_input(PT_TEXT * 40)
+        self.assertEqual(ctx.exception.code, "text_too_long")
+
+    def test_empty(self):
+        with self.assertRaises(InputValidationError) as ctx:
+            build_news_input("   \n\t ")
+        self.assertEqual(ctx.exception.code, "empty_input")
+
+    def test_unreadable(self):
+        with self.assertRaises(InputValidationError) as ctx:
+            build_news_input("12345 67890 !!!! ### $$$ %%% 12345 67890 !!!! ### $$$ %%% 999 888 777")
+        self.assertEqual(ctx.exception.code, "unreadable_input")
+
+    def test_english_rejected(self):
+        text = ("The government announced on Monday that the new vaccination campaign "
+                "will be held in all states of the country until the end of the month.")
+        with self.assertRaises(InputValidationError) as ctx:
+            build_news_input(text)
+        self.assertEqual(ctx.exception.code, "unsupported_language")
+
+    def test_spanish_rejected(self):
+        text = ("El gobierno anunció el lunes que la nueva campaña de vacunación se realizará "
+                "en todos los estados del país hasta el final del mes, según las autoridades.")
+        self.assertFalse(detect_portuguese(text)[0])
+
+    def test_title_inferred_from_first_line(self):
+        news = build_news_input("Governo anuncia campanha de vacinação\n" + PT_TEXT)
+        self.assertTrue(news.title_inferred)
+        self.assertEqual(news.title, "Governo anuncia campanha de vacinação")
+
+    def test_explicit_title_kept(self):
+        news = build_news_input(PT_TEXT, title="Título informado")
+        self.assertFalse(news.title_inferred)
+        self.assertEqual(news.title, "Título informado")
+
+
+class NormalizationTests(SimpleTestCase):
+    def test_nfc_and_spaces(self):
+        decomposed = "Noti\u0301cia   com\u200b  espaços\r\n\r\n\r\n\r\nfim"
+        self.assertEqual(normalize_text(decomposed), "Notícia com espaços\n\nfim")
+
+
+class PrivacyTests(SimpleTestCase):
+    def test_masks_pii(self):
+        masked = mask_pii("Contato: joao@exemplo.com, CPF 123.456.789-09, tel (11) 98765-4321.")
+        self.assertNotIn("joao@exemplo.com", masked)
+        self.assertNotIn("123.456.789-09", masked)
+        self.assertNotIn("98765-4321", masked)
+
+    def test_keeps_years_and_public_names(self):
+        text = "Lula e Bolsonaro disputaram as eleições de 2022 e 2018."
+        self.assertEqual(mask_pii(text), text)
+
+    def test_summary_is_masked_and_short(self):
+        news = build_news_input("Ligue para (11) 98765-4321 e ganhe prêmio\n" + PT_TEXT)
+        summary = summarize_claim(news)
+        self.assertNotIn("98765-4321", summary)
+        self.assertLessEqual(len(summary), 140)

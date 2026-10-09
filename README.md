@@ -1,181 +1,142 @@
-# verificAI
+# verificAI — Fake Eyes (backend)
+
+Backend Django do **Fake Eyes**, sistema de apoio à avaliação de notícias em
+português, consumindo o modelo **BERTimbau V4 (chunking)**.
+
+Plano de entrega por etapas: [TASKS.md](TASKS.md).
 
 ```text
-meu-projeto/
-├── apura/               # Código-fonte da aplicação Django
+verificAI/
+├── apura/                      # Projeto Django
 │   ├── manage.py
-│   └── apura/           # Módulo principal do projeto
+│   ├── apura/                  # settings, urls, wsgi
+│   └── analysis/               # App de análise
+│       ├── api/                # API v1 (views, serializers, erros)
+│       ├── services/
+│       │   ├── classifier.py   # Carregamento do BERTimbau V4 + fatiamento (RF11/RF12)
+│       │   ├── preprocessing.py# Validação, idioma, PII (RF01/RF04/RF05)
+│       │   ├── risk.py         # Índice de risco, faixas, abstenção (RF13/RF14/RF16)
+│       │   └── pipeline.py     # Orquestração da análise
+│       ├── rules/rules_v1.json # Pesos e limiares versionados
+│       └── tests/
+├── bert_fakenews_v4/           # Pesos do modelo (model.safetensors fora do Git)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── requirements.txt
-└── nginx/
-    └── default.conf
-
+├── nginx/default.conf
+└── .env.example
 ```
 
 ---
 
-### 1. `docker-compose.yml`
+## Gerenciamento de Arquivos Grandes (Git LFS)
 
-```yaml
-version: '3.8'
+O arquivo de pesos do modelo (`bert_fakenews_v4/model.safetensors`, ~436 MB) excede o limite tradicional de 100 MB do GitHub e é rastreado via **Git LFS (Large File Storage)** através do arquivo `.gitattributes`.
 
-services:
-  db:
-    image: postgres:15-alpine
-    container_name: apura_db
-    restart: always
-    environment:
-      POSTGRES_DB: apura_db
-      POSTGRES_USER: apura_user
-      POSTGRES_PASSWORD: apura_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+### Clonando com Git LFS
 
-  web:
-    build: .
-    container_name: apura_web
-    restart: always
-    command: gunicorn apura.wsgi:application --bind 0.0.0.0:8000
-    volumes:
-      - .:/code
-      - static_volume:/code/static
-      - media_volume:/code/media
-    expose:
-      - "8000"
-    environment:
-      - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=apura_db
-      - DB_USER=apura_user
-      - DB_PASSWORD=apura_password
-      - DB_HOST=db
-      - DB_PORT=5432
-    depends_on:
-      - db
+Ao clonar o repositório a partir do GitHub, certifique-se de ter o Git LFS instalado:
 
-  nginx:
-    image: nginx:alpine
-    container_name: apura_nginx
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx:/etc/nginx/conf.d
-      - static_volume:/code/static
-      - media_volume:/code/media
-    depends_on:
-      - web
-
-volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
-
-```
-
----
-
-### 2. `Dockerfile`
-
-Crie um arquivo chamado **`Dockerfile`** no diretório raiz do projeto:
-
-```dockerfile
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-WORKDIR /code
-
-# Instala dependências do sistema necessárias para o PostgreSQL e compilações
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt /code/
-RUN pip install --upgrade pip && pip install -r requirements.txt
-
-COPY . /code/
-
-```
-
----
-
-### 3. `requirements.txt`
-
-Certifique-se de incluir as dependências básicas:
-
-```text
-Django>=4.2,<5.0
-gunicorn>=21.0.0
-psycopg2-binary>=2.9.0
-
-```
-
----
-
-### 4. `nginx/default.conf`
-
-Crie a pasta `nginx` e dentro dela o arquivo `default.conf`:
-
-```nginx
-server {
-    listen 80;
-    server_name localhost;
-
-    location / {
-        proxy_pass http://web:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /code/static/;
-    }
-
-    location /media/ {
-        alias /code/media/;
-    }
-}
-
-```
-
----
-
-### Comandos para Rodar o Projeto
-
-1. **Subir os containers:**
 ```bash
+# 1. Instalar o Git LFS no sistema (se ainda não tiver)
+# macOS: brew install git-lfs
+# Ubuntu/Debian: sudo apt install git-lfs
+
+# 2. Inicializar o Git LFS
+git lfs install
+
+# 3. Baixar os pesos binários rastreados
+git lfs pull
+```
+
+> **Fallback Inteligente:** Se o repositório for clonado sem Git LFS (onde `model.safetensors` é apenas um ponteiro de texto de ~130 bytes), o backend detecta isso automaticamente e baixa os pesos diretamente do **Hugging Face Hub** (`oficialmarlon/bertimbau-fakenews-detector-v4`), mantendo tudo funcional sem erros.
+
+---
+
+## Rodando localmente (sem Docker)
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env          # ajuste DJANGO_SECRET_KEY
+cd apura
+../.venv/bin/python manage.py migrate
+../.venv/bin/python manage.py runserver
+```
+
+O modelo é carregado de `bert_fakenews_v4/` (via Git LFS). Se a pasta contiver apenas o ponteiro LFS ou não existir, o download é feito automaticamente do Hugging Face Hub. Em Apple Silicon (Mac M1/M2/M3/M4), a inferência usa aceleração de hardware Metal (MPS) automaticamente.
+
+## Rodando com Docker
+
+```bash
+cp .env.example .env          # defina DJANGO_SECRET_KEY e DJANGO_DEBUG=false
 docker compose up -d --build
-
-```
-
-
-2. **Criar as migrações do banco de dados:**
-```bash
 docker compose exec web python manage.py migrate
-
-```
-
-
-3. **Criar um superusuário admin:**
-```bash
 docker compose exec web python manage.py createsuperuser
-
-```
-
-
-4. **Coletar arquivos estáticos:**
-```bash
 docker compose exec web python manage.py collectstatic --no-input
-
 ```
 
+A aplicação fica em **`http://localhost`** (nginx → gunicorn → Django).
 
+---
 
-A aplicação estará acessível em **`http://localhost`**.
+## API v1
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/v1/health/?load=1` | Status, versões e informações do modelo |
+| `POST` | `/api/v1/analyses/` | Executa uma análise (texto) |
+| `GET` | `/api/v1/analyses/<id>/` | Recupera resultado e versões usadas |
+
+**Requisição**
+
+```json
+{
+  "input_type": "text",
+  "title": "URGENTE: Nova substância milagrosa cura todas as doenças em 24h!",
+  "subtitle": "Médicos tentam esconder a receita secreta da população.",
+  "text": "Compartilhe imediatamente antes que derrubem este artigo..."
+}
+```
+
+`title` e `subtitle` são opcionais; o texto completo deve ter entre 50 e 5.000
+caracteres. Entrada por `url` retorna `501` até a Etapa 2.
+
+**Resposta (resumo)**
+
+```json
+{
+  "id": "uuid",
+  "status": {"code": "alto_risco", "label": "Alto risco"},
+  "risk_index": 94.09,
+  "claim": {"summary": "..."},
+  "explanation": ["..."],
+  "abstention": [],
+  "evidence": {"enabled": false, "sources": []},
+  "indicators": {"...": "..."},
+  "model": {"label": "falsa", "fake_probability": 0.998, "chunks_analyzed": 1},
+  "risk": {"formula": "100 * sum(w_i * s_i) / sum(w_i)", "signals_missing": ["evidence_conflict"]},
+  "limitations": ["..."],
+  "recommendations": ["..."],
+  "versions": {"model": "...", "model_sha256": "...", "rules": "...", "calibrator": "...", "schema": "...", "code": "..."}
+}
+```
+
+Status possíveis: `poucos_sinais_de_risco` (0–25), `requer_atencao` (>25–60),
+`alto_risco` (>60–100) e `analise_inconclusiva` (tem prioridade; sem índice).
+
+**Erros** seguem sempre o formato:
+
+```json
+{"error": {"code": "text_too_short", "message": "...", "action": "...", "field": "text"}}
+```
+
+---
+
+## Testes
+
+```bash
+cd apura
+../.venv/bin/python manage.py test analysis                    # rápido (modelo simulado)
+RUN_MODEL_TESTS=1 ../.venv/bin/python manage.py test analysis  # inclui o modelo real
+```

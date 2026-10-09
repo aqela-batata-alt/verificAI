@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: apura_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-apura_db}
+      POSTGRES_USER: ${DB_USER:-apura_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-apura_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-apura_user} -d ${DB_NAME:-apura_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    container_name: apura_web
+    restart: always
+    volumes:
+      - .:/code
+      - static_volume:/code/apura/static
+      - hf_cache:/hf-cache
+    expose:
+      - "8000"
+    environment:
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-false}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:?defina DJANGO_SECRET_KEY no .env}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost}
+      - DJANGO_SECURE_COOKIES=${DJANGO_SECURE_COOKIES:-false}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-apura_db}
+      - DB_USER=${DB_USER:-apura_user}
+      - DB_PASSWORD=${DB_PASSWORD:-apura_password}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - MODEL_PATH=/code/bert_fakenews_v4
+      - MODEL_DEVICE=cpu
+      - MODEL_WARMUP=true
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: apura_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+      - static_volume:/code/apura/static
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  hf_cache:

@@ -1,0 +1,7 @@
+.venv/
+.git/
+**/__pycache__/
+apura/db.sqlite3
+.env
+# Pesos montados por volume (dev) ou baixados do Hugging Face Hub (produção)
+bert_fakenews_v4/model.safetensors

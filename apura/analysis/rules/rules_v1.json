@@ -1,0 +1,52 @@
+{
+  "version": "rules-v1.0.0",
+  "description": "Regras iniciais do MVP. Limiares provisórios até a calibração da Etapa 6.",
+  "risk_weights": {
+    "model_fake_probability": 0.6,
+    "linguistic_indicators": 0.15,
+    "evidence_conflict": 0.25
+  },
+  "status_bands": {
+    "low_max": 25,
+    "attention_max": 60
+  },
+  "abstention": {
+    "min_model_confidence": 0.7,
+    "max_chunk_disagreement": 0.35,
+    "require_evidence": false
+  },
+  "calibrator": {
+    "version": "identity-v0",
+    "method": "none",
+    "temperature": 1.0,
+    "calibrated": false
+  },
+  "chunk_aggregation": "mean_fake_probability",
+  "linguistic": {
+    "caps_ratio_saturation": 0.3,
+    "exclamation_per_100_words_saturation": 3.0,
+    "sensational_terms_saturation": 3,
+    "sensational_terms": [
+      "urgente",
+      "compartilhe",
+      "compartilhem",
+      "antes que apaguem",
+      "antes que derrubem",
+      "a mídia não mostra",
+      "a grande mídia esconde",
+      "querem esconder",
+      "tentam esconder",
+      "ninguém está falando",
+      "milagrosa",
+      "milagroso",
+      "cura definitiva",
+      "chocante",
+      "bomba",
+      "inacreditável",
+      "100% comprovado",
+      "repassem",
+      "divulguem",
+      "vergonha"
+    ]
+  }
+}

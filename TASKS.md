@@ -1,0 +1,88 @@
+# Fake Eyes — Plano de Tarefas por Etapas
+
+Baseado na especificação **Requisitos do Sistema Fake Eyes v2.2**.
+Legenda: `[x]` concluído · `[/]` em andamento · `[ ]` pendente.
+
+---
+
+## Etapa 1 — Backend base + Modelo (atual)
+
+Objetivo: API Django versionada consumindo o BERTimbau V4 local, com
+regras de risco, abstenção e rastreabilidade de versões.
+
+### 1.1 Infraestrutura
+- [x] Projeto Django `apura/` com settings via variáveis de ambiente
+- [x] `requirements.txt`, `Dockerfile` (CPU torch), `docker-compose.yml`, `nginx/`
+- [x] `.env.example` e `.gitignore` (pesos do modelo fora do Git)
+- [x] SQLite em dev local, PostgreSQL no Docker
+
+### 1.2 Serviço do modelo (`analysis/services/classifier.py`)
+- [x] Carregamento singleton thread-safe do modelo local `bert_fakenews_v4/`
+      com fallback para o Hugging Face Hub (RF11)
+- [x] Seleção automática de dispositivo (MPS / CUDA / CPU)
+- [x] Hash SHA-256 dos pesos como identificador de integridade (RF21)
+- [x] Fatiamento determinístico por tokens + agregação documentada (RF12)
+
+### 1.3 Pré-processamento (`analysis/services/preprocessing.py`)
+- [x] Validação 50–5.000 caracteres sem corte silencioso (RF01)
+- [x] Normalização Unicode/espaços, detecção de vazio/corrompido (RF04)
+- [x] Verificação heurística de idioma português (RF04)
+- [x] Mascaramento de CPF, telefone e e-mail antes de persistir (RF05)
+
+### 1.4 Regras de decisão (`analysis/services/risk.py`, `rules/`)
+- [x] Indicadores linguísticos auxiliares (RF10)
+- [x] Índice de risco 0–100 com pesos versionados em JSON (RF13)
+- [x] Faixas de status 0–25 / 25–60 / 60–100 sem lacunas (RF16)
+- [x] Abstenção com motivos distintos e prioridade do inconclusivo (RF14)
+
+### 1.5 API v1 (`/api/v1/`)
+- [x] `POST /api/v1/analyses/` — análise por texto
+- [x] `GET /api/v1/analyses/<id>/` — resultado técnico persistido
+- [x] `GET /api/v1/health/` — status e versões dos componentes
+- [x] Estrutura de erro documentada `{error: {code, message, action, field}}` (RF27/RF29)
+- [x] Persistência sem texto bruto, com versões de modelo/regras/código (RF05, RF21)
+
+### 1.6 Testes
+- [x] Unitários: risco, faixas-limite, abstenção, validação, idioma, PII
+- [x] Determinismo do fatiamento (tokenizer real)
+- [x] Integração da API com classificador simulado
+- [x] Teste opcional com o modelo real (`RUN_MODEL_TESTS=1`)
+
+---
+
+## Etapa 2 — Entrada por URL e segurança
+- [ ] Extração estruturada: título, subtítulo, corpo, autoria, data, domínio (RF02)
+- [ ] Tratamento de falhas: rede, HTTP, paywall, antirrobô, não textual (RF03)
+- [ ] Proteção SSRF: bloqueio de IPs privados/loopback/link-local/metadados,
+      validação após redirecionamentos, limites de tempo/tamanho (RNF09)
+- [ ] Testes com faixas 10/8, 172.16/12, 192.168/16, 127/8, ::1, link-local
+
+## Etapa 3 — Alegação e evidências
+- [ ] Identificação da alegação principal + confirmação/correção (RF06)
+- [ ] Extração de entidades e datas (RF09)
+- [ ] Coleção curada + serviço de busca com registro de consulta (RF07)
+- [ ] Classificação fonte × alegação: compatível/conflitante/contextual/insuficiente (RF08)
+- [ ] Ativar sinal `evidence_conflict` e abstenção por evidência insuficiente
+
+## Etapa 4 — Contas, limite de visitante e histórico
+- [ ] Cadastro, login, logout seguros (RF31, RNF18)
+- [ ] Recuperação de acesso com link de uso único (RF32)
+- [ ] Limite de 3 análises/24h por identificador anônimo (RF33, RNF19)
+- [ ] Histórico sincronizado + exclusão de itens/conta (RF20, RF28, RF34)
+- [ ] Feedback útil/não útil com consentimento (RF19)
+- [ ] Rate limiting, CSP, CORS restrito, HTTPS (RNF16)
+
+## Etapa 5 — Aplicação web
+- [ ] Páginas: início, análise, resultado, histórico, sobre, privacidade (RF23, RF30)
+- [ ] Formulário texto/URL com validação acessível (RF24)
+- [ ] Estados reais de processamento, sem progresso fictício (RF25, RNF17)
+- [ ] Resultado, fontes, orientação e resumo copiável (RF16–RF18, RF26)
+- [ ] WCAG 2.2 AA, responsivo 320–1.440 px, matriz de navegadores (RNF08, RNF14, RNF15)
+
+## Etapa 6 — Qualidade da IA e governança
+- [ ] Calibração (temperature scaling) em dados independentes (RNF04)
+- [ ] Definição do limiar de abstenção com conjunto de validação (RF14)
+- [ ] Relatório por fonte/período/tema e fora do escopo (RNF03, RNF05)
+- [ ] Rastreamento de experimentos e reprodutibilidade (RNF06)
+- [ ] CI executando testes e bloqueando publicação em falhas (RNF13)
+- [ ] Teste de desempenho p50/p95/p99 ≤ 30 s (RNF01)

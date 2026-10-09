@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Django
+apura/db.sqlite3
+apura/static/
+apura/media/
+
+# Segredos
+.env
+
+# Pesos grandes do modelo são gerenciados via Git LFS (ver .gitattributes)
+
+# SO / IDE
+.DS_Store
+.idea/
+.vscode/
