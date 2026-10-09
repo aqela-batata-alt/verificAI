@@ -19,7 +19,7 @@ class AnalysisRequestSerializer(serializers.Serializer):
     """Entrada: apenas a opção selecionada (texto OU URL) é considerada (RF24)."""
 
     input_type = serializers.ChoiceField(choices=Analysis.InputType.choices, default=Analysis.InputType.TEXT)
-    text = serializers.CharField(required=False, allow_blank=True, trim_whitespace=False, max_length=20000)
+    text = serializers.CharField(required=False, allow_blank=True, trim_whitespace=False, max_length=50000)
     title = serializers.CharField(required=False, allow_blank=True, max_length=1000, default="")
     subtitle = serializers.CharField(required=False, allow_blank=True, max_length=2000, default="")
     url = serializers.CharField(required=False, allow_blank=True, max_length=2048)

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { formatNumber } from '../domain/format.js'
 import { TEXT_LIMITS, VISITOR_LIMIT } from '../domain/limits.js'
 import { RISK_BANDS, STATUS_CODES } from '../domain/status.js'
 import { BAND_RANGES, howFaq, howSections, howSteps } from './how.js'
@@ -158,7 +159,7 @@ describe('RF30: o que o texto nunca pode dizer', () => {
 describe('limites do conteúdo vêm das constantes', () => {
   it('o tamanho do texto aceito é o do RF01', () => {
     const text = allText(BACKENDS[0][1])
-    expect(text).toContain(`${TEXT_LIMITS.min} a 5.000 caracteres`)
+    expect(text).toContain(`${TEXT_LIMITS.min} a ${formatNumber(TEXT_LIMITS.max)} caracteres`)
   })
 
   it('o limite de visitante é o do RF33', () => {

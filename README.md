@@ -61,7 +61,7 @@ Quando o usuário cola um texto único no formulário sem preencher campos separ
 
 ### 3. Fatiamento Determinístico (*Chunking* com *Stride*)
 
-Para processar matérias longas (até o limite de 5.000 caracteres) sem perda de contexto:
+Para processar matérias longas (até o limite de 20.000 caracteres) sem perda de contexto:
 * O corpo é fatiado em janelas com sobreposição (*stride*) de tokens.
 * Os cortes são alinhados ao início de palavras inteiras (nenhuma janela se inicia com sub-palavras `##`).
 * Todas as janelas são processadas pelo modelo e agregadas via média aritmética das probabilidades $P(\text{falsa})$.

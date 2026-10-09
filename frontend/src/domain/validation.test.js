@@ -22,13 +22,13 @@ describe('validateText (RF01: de 50 a 5.000 caracteres)', () => {
     expect(validateText(chars(TEXT_LIMITS.min))).toMatchObject({ ok: true, length: 50 })
   })
 
-  it('aceita 5.000 e recusa 5.001 sem cortar o texto', () => {
-    expect(validateText(chars(TEXT_LIMITS.max))).toMatchObject({ ok: true, length: 5000 })
+  it('aceita o limite máximo e recusa excedente sem cortar o texto', () => {
+    expect(validateText(chars(TEXT_LIMITS.max))).toMatchObject({ ok: true, length: TEXT_LIMITS.max })
     const tooLong = validateText(chars(TEXT_LIMITS.max + 1))
     expect(tooLong).toMatchObject({
       ok: false,
       scenario: 'text_too_long',
-      details: { length: 5001, max_chars: 5000 },
+      details: { length: TEXT_LIMITS.max + 1, max_chars: TEXT_LIMITS.max },
     })
   })
 

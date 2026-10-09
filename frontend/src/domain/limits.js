@@ -2,7 +2,7 @@
 // Constantes de regra de negócio. Cada uma aponta para o requisito (Requisitos v2.2) de onde vem.
 
 /** RF01: tamanho do texto, em caracteres, depois da normalização. */
-export const TEXT_LIMITS = Object.freeze({ min: 50, max: 5000 })
+export const TEXT_LIMITS = Object.freeze({ min: 50, max: 20000 })
 
 /** RF01 / API: tamanho máximo do endereço aceito pela API. */
 export const URL_MAX_LENGTH = 2048

@@ -19,7 +19,7 @@ import { countCharacters, normalizeText } from './text.js'
 /** @typedef {'text' | 'url'} InputType */
 
 /**
- * Texto de 50 a 5.000 caracteres, contados depois da normalização (RF01). Nunca corta.
+ * Texto de 50 a 20.000 caracteres, contados depois da normalização (RF01). Nunca corta.
  * @param {string} raw
  * @returns {ValidationSuccess | ValidationFailure}
  */

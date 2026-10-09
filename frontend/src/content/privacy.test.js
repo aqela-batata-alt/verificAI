@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createConfig } from '../config.js'
+import { formatNumber } from '../domain/format.js'
 import { FEEDBACK_COMMENT_RETENTION_DAYS, HISTORY_MAX_ITEMS, TEXT_LIMITS, VISITOR_LIMIT } from '../domain/limits.js'
 import { privacySections } from './privacy.js'
 
@@ -91,7 +92,7 @@ describe('RNF19: limite de visitante', () => {
 describe('RF05 e RF30: o conteúdo enviado', () => {
   it('diz que o texto não é guardado e o que o servidor guarda no lugar', () => {
     const text = textOf(byId(CONFIGS['demonstração (padrão de hoje)'], 'conteudo'))
-    expect(text).toContain(`de ${TEXT_LIMITS.min} a 5.000 caracteres`)
+    expect(text).toContain(`de ${TEXT_LIMITS.min} a ${formatNumber(TEXT_LIMITS.max)} caracteres`)
     expect(text).toMatch(/O servidor não guarda o texto/)
     expect(text).toMatch(/resumo curto da alegação/)
     expect(text).toMatch(/até 140 caracteres/)

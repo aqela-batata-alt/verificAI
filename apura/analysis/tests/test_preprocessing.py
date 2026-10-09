@@ -29,7 +29,7 @@ class ValidationTests(SimpleTestCase):
 
     def test_too_long_is_rejected_not_truncated(self):
         with self.assertRaises(InputValidationError) as ctx:
-            build_news_input(PT_TEXT * 40)
+            build_news_input(PT_TEXT * 150)
         self.assertEqual(ctx.exception.code, "text_too_long")
 
     def test_empty(self):

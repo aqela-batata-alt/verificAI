@@ -24,7 +24,7 @@ regras de risco, abstenção e rastreabilidade de versões.
 - [x] Fatiamento determinístico por tokens + agregação documentada (RF12)
 
 ### 1.3 Pré-processamento (`analysis/services/preprocessing.py`)
-- [x] Validação 50–5.000 caracteres sem corte silencioso (RF01)
+- [x] Validação 50–20.000 caracteres sem corte silencioso (RF01)
 - [x] Normalização Unicode/espaços, detecção de vazio/corrompido (RF04)
 - [x] Verificação heurística de idioma português (RF04)
 - [x] Mascaramento de CPF, telefone e e-mail antes de persistir (RF05)

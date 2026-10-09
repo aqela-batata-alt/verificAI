@@ -149,10 +149,11 @@ def build_news_input(text: str, title: str = "", subtitle: str = "") -> NewsInpu
             field="text", length=total_len, min_chars=min_chars,
         )
     if total_len > max_chars:
+        formatted_max = f"{max_chars:,}".replace(",", ".")
         raise InputValidationError(
             "text_too_long",
             f"O conteúdo tem {total_len} caracteres; o máximo é {max_chars}.",
-            "Envie apenas o trecho com a alegação principal (até 5.000 caracteres).",
+            f"Envie apenas o trecho com a alegação principal (até {formatted_max} caracteres).",
             field="text", length=total_len, max_chars=max_chars,
         )
 

@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { Route, Routes, useParams } from 'react-router-dom'
 import { axe } from 'vitest-axe'
 import { describe, expect, it, vi } from 'vitest'
-import { VISITOR_LIMIT } from '../../domain/limits.js'
+import { formatNumber } from '../../domain/format.js'
+import { TEXT_LIMITS, VISITOR_LIMIT } from '../../domain/limits.js'
 import { createDemoAuthGateway } from '../../services/gateways.js'
 import { apiErrors, makeApiAnalysis } from '../../test/fixtures.js'
 import { createTestServices, jsonResponse, renderWithApp } from '../../test/render.jsx'
@@ -72,8 +73,8 @@ describe('estrutura e acessibilidade', () => {
     expect(screen.getByRole('heading', { name: 'O que vamos investigar?' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Colar texto', selected: true })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Inserir link' })).not.toHaveAttribute('aria-disabled')
-    expect(textarea()).toHaveAccessibleDescription(/Entre 50 e 5\.000 caracteres/)
-    expect(screen.getByText('0 / 5.000')).toBeInTheDocument()
+    expect(textarea()).toHaveAccessibleDescription(new RegExp(`Entre 50 e ${formatNumber(TEXT_LIMITS.max)} caracteres`))
+    expect(screen.getByText(`0 / ${formatNumber(TEXT_LIMITS.max)}`)).toBeInTheDocument()
     expect(screen.getByText(/3 de 3/)).toBeInTheDocument()
     expect(screen.getByText(/a janela de 24 h começa na primeira análise/)).toBeInTheDocument()
     expect(submit()).toBeInTheDocument()
@@ -97,11 +98,15 @@ describe('estrutura e acessibilidade', () => {
 
   it('o contador mostra o excesso por escrito e nada é cortado na colagem (RF01)', async () => {
     setup()
-    const long = 'a'.repeat(5001)
+    const long = 'a'.repeat(TEXT_LIMITS.max + 1)
     await userEvent.click(textarea())
     await userEvent.paste(long)
     expect(textarea()).toHaveValue(long)
-    expect(screen.getByText(/5\.001 \/ 5\.000 · 1 a mais/)).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        new RegExp(`${formatNumber(TEXT_LIMITS.max + 1)} \\/ ${formatNumber(TEXT_LIMITS.max)} · 1 a mais`)
+      )
+    ).toBeInTheDocument()
   })
 })
 
@@ -170,16 +175,16 @@ describe('validação no navegador (RF01, RF27)', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 
-  it('texto acima de 5.000 caracteres: avisa o limite, não corta e não envia', async () => {
+  it('texto acima do limite máximo: avisa o limite, não corta e não envia', async () => {
     const { fetchImpl } = setup()
     await userEvent.click(textarea())
-    await userEvent.paste('a'.repeat(5001))
+    await userEvent.paste('a'.repeat(TEXT_LIMITS.max + 1))
     await userEvent.click(submit())
     const alert = await findErrorAlert()
     expect(alert).toHaveTextContent('O texto passou do limite.')
     expect(alert).toHaveTextContent('Nada foi cortado')
     expect(fetchImpl).not.toHaveBeenCalled()
-    expect(textarea()).toHaveValue('a'.repeat(5001))
+    expect(textarea()).toHaveValue('a'.repeat(TEXT_LIMITS.max + 1))
   })
 
   it.each([
@@ -221,7 +226,7 @@ describe('texto de exemplo', () => {
     await userEvent.click(screen.getByRole('button', { name: /Testar com um exemplo/ }))
     expect(textarea()).toHaveValue(EXAMPLE_TEXT)
     expect(textarea()).toHaveFocus()
-    expect(screen.getByText(`${EXAMPLE_TEXT.length} / 5.000`)).toBeInTheDocument()
+    expect(screen.getByText(`${EXAMPLE_TEXT.length} / ${formatNumber(TEXT_LIMITS.max)}`)).toBeInTheDocument()
   })
 
   it('não aparece na aba de link', async () => {
