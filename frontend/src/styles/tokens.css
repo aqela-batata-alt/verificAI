@@ -1,0 +1,262 @@
+/* ==========================================================================
+   Apura — tokens de design
+
+   ÚNICA fonte de valores visuais da interface. Nenhum outro arquivo CSS escreve cor,
+   tamanho de fonte, espaçamento, raio ou sombra à mão: tudo vem daqui. Para trocar a
+   identidade visual (por exemplo, ao aplicar os valores do Figma do projeto), basta
+   alterar este arquivo. O teste src/styles/tokens.test.js confere os contrastes (WCAG 2.2)
+   e os tamanhos mínimos a cada alteração.
+
+   Estrutura em duas camadas (Nathan Curtis, "Naming Tokens in Design Systems"):
+     1. primitivos  → a paleta e as escalas (o que existe);
+     2. semânticos  → o papel de cada valor na interface (para que serve).
+   Os componentes usam só os semânticos.
+
+   Origem dos valores: protótipo v2 do projeto. Onde o protótipo não atendia ao RNF08
+   (WCAG 2.2 AA e alvos de 48 × 48 px), o valor foi ajustado e vem marcado com "AJUSTE".
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ------------------------------------------------------------------------
+     1. PRIMITIVOS — paleta
+     ------------------------------------------------------------------------ */
+  --navy-950: #05172b;
+  --navy-900: #08213c; /* "ink" do protótipo */
+  --navy-800: #0b2747;
+  --navy-700: #173a60;
+
+  --gold-300: #f5c461;
+  --gold-400: #e6a735;
+  --gold-500: #d99a22;
+  /* AJUSTE: o protótipo usava #a97017 para texto dourado (3,8:1 sobre o papel, abaixo de 4,5:1). */
+  --gold-800: #8f5d0f;
+
+  --paper: #f7f5ef;
+  --white: #ffffff;
+
+  --slate-100: #f0f2f3;
+  --slate-150: #f4f5f2;
+  --slate-200: #dce0de;
+  --slate-300: #cfd6da;
+  --slate-400: #74838f; /* AJUSTE: bordas de controles ≥ 3:1 (WCAG 1.4.11); o protótipo usava #c7d0d6 (1,5:1). */
+  --slate-500: #5f6d79; /* AJUSTE: texto de apoio e placeholder ≥ 4,5:1; o protótipo usava #6e7b85 (4,2:1). */
+  --slate-600: #566574;
+
+  --green-700: #17644c;
+  --green-100: #e9f3ee;
+  --green-200: #cfe8dc;
+
+  --amber-700: #79510b;
+  --amber-100: #fff3d7;
+  --amber-200: #f6dfa3;
+  --amber-border: #e6d5ab;
+
+  --red-700: #9f302c;
+  --red-800: #872824;
+  --red-100: #fbeae7;
+  --red-200: #efc1bc;
+  --red-border: #e5b9b6;
+
+  --steel-700: #46596b;
+  --steel-100: #e9eff4;
+  --steel-150: #e9eff2;
+
+  --ice-100: #e0e8f0; /* texto principal sobre azul-marinho */
+  --ice-200: #c0cfde; /* texto de apoio sobre azul-marinho */
+
+  /* ------------------------------------------------------------------------
+     1. PRIMITIVOS — tipografia
+     Roboto e STIX Two Text são as mesmas famílias que o protótipo embutia (as fontes
+     "FE Sans" e "FE Editorial" eram Roboto 2.137 e STIXGeneral). Ficam no pacote, sem
+     chamada a serviços externos (privacidade e CSP).
+     ------------------------------------------------------------------------ */
+  --font-sans: 'Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --font-serif: 'STIX Two Text', Georgia, 'Times New Roman', serif;
+
+  /* Escala modular (razão 1,25 sobre o corpo de 17 px; Bringhurst). Em rem, para respeitar o
+     tamanho de fonte escolhido pela pessoa no navegador (WCAG 1.4.4). */
+  --text-label: 0.75rem; /* 12 px — só rótulos em caixa alta e negrito */
+  --text-small: 0.875rem; /* 14 px — texto secundário (nunca abaixo disso em frases) */
+  --text-ui: 1rem; /* 16 px — botões, navegação, controles */
+  --text-body: 1.0625rem; /* 17 px */
+  --text-lead: 1.125rem; /* 18 px */
+  --text-h4: 1.3125rem; /* 21 px */
+  --text-h3: 1.625rem; /* 26 px */
+  --text-h2: 2.0625rem; /* 33 px */
+  --text-h2-large: 2.5625rem; /* 41 px */
+  /* Títulos de página e da capa: fluidos entre 320 e ~900 px de largura (Utopia). */
+  --text-h1: clamp(2.375rem, 1.55rem + 3.2vw, 3.25rem); /* 38 → 52 px */
+  --text-display: clamp(2.875rem, 1.2rem + 5.8vw, 4.375rem); /* 46 → 70 px */
+  /* Nome da marca ("Apura"): é o logotipo escrito, não texto corrido. */
+  --text-brand: 1.875rem; /* 30 px */
+  --text-brand-footer: 1.5rem; /* 24 px */
+
+  --leading-display: 1.04;
+  --leading-heading: 1.12;
+  --leading-snug: 1.4;
+  --leading-body: 1.55;
+
+  --tracking-display: -0.028em;
+  --tracking-heading: -0.015em;
+  --tracking-label: 0.14em;
+
+  --weight-regular: 400;
+  --weight-bold: 700;
+
+  /* Medida de leitura confortável: 45 a 75 caracteres por linha (Bringhurst). */
+  --measure: 65ch;
+
+  /* ------------------------------------------------------------------------
+     1. PRIMITIVOS — espaço (base de 4 px), forma, profundidade e movimento
+     ------------------------------------------------------------------------ */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.8125rem;
+  --radius-xl: 0.9375rem;
+  --radius-round: 999px;
+
+  --shadow-sheet: 0 12px 45px rgb(8 33 60 / 0.05);
+  --shadow-raised: 0 2px 5px rgb(8 33 60 / 0.07);
+  --shadow-toast: 0 8px 40px rgb(8 33 60 / 0.3);
+  --shadow-dialog: 0 30px 90px rgb(0 0 0 / 0.27);
+
+  --duration-fast: 160ms;
+  --duration-base: 250ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --z-header: 10;
+  --z-dialog: 100;
+  --z-toast: 150;
+
+  /* ------------------------------------------------------------------------
+     2. SEMÂNTICOS — superfícies e texto
+     ------------------------------------------------------------------------ */
+  --color-bg: var(--paper);
+  --color-surface: var(--white);
+  --color-surface-muted: var(--slate-100);
+  --color-surface-quiet: var(--slate-150);
+  --color-surface-dark: var(--navy-900);
+
+  --color-text: var(--navy-900);
+  --color-text-muted: var(--slate-600);
+  --color-text-placeholder: var(--slate-500);
+  --color-text-accent: var(--gold-800);
+  --color-text-on-dark: var(--white);
+  --color-text-on-dark-soft: var(--ice-100);
+  --color-text-on-dark-muted: var(--ice-200);
+  --color-text-on-dark-accent: var(--gold-300);
+
+  --color-border: var(--slate-200);
+  --color-border-control: var(--slate-400);
+  --color-border-on-dark: rgb(255 255 255 / 0.18);
+  --color-on-dark-hover: rgb(255 255 255 / 0.12); /* fundo de um botão de ícone sobre o azul-marinho, ao passar o mouse */
+  --color-on-dark-ring-1: rgb(255 255 255 / 0.02); /* anéis decorativos dos painéis azuis */
+  --color-on-dark-ring-2: rgb(255 255 255 / 0.015);
+  --color-header-surface: rgb(255 255 255 / 0.8);
+
+  /* ------------------------------------------------------------------------
+     2. SEMÂNTICOS — ações
+     ------------------------------------------------------------------------ */
+  --color-primary: var(--navy-900);
+  --color-primary-hover: var(--navy-700);
+  --color-on-primary: var(--white);
+  --color-accent: var(--gold-500);
+  --color-accent-hover: var(--gold-400);
+  --color-on-accent: var(--navy-900);
+  --color-danger: var(--red-700);
+  --color-danger-hover: var(--red-800);
+  --color-on-danger: var(--white);
+
+  /* Anel de foco em duas camadas: a de dentro (dourada) se vê sobre fundos escuros e a de
+     fora (azul-marinho) sobre fundos claros; juntas passam de 3:1 sobre qualquer fundo do
+     sistema (WCAG 1.4.11 e 2.4.7). */
+  --color-focus-inner: var(--gold-300);
+  --color-focus-outer: var(--navy-900);
+  --focus-outline-width: 3px;
+  --focus-outline-offset: 2px;
+  --focus-inner-width: 2px;
+
+  --color-overlay: rgb(5 23 43 / 0.74);
+
+  /* ------------------------------------------------------------------------
+     2. SEMÂNTICOS — status do resultado (RF16)
+     Cada status tem forma e texto próprios; a cor nunca é o único sinal (WCAG 1.4.1).
+     ------------------------------------------------------------------------ */
+  --tone-low-fg: var(--green-700);
+  --tone-low-bg: var(--green-100);
+  --tone-low-band: var(--green-200);
+
+  --tone-attention-fg: var(--amber-700);
+  --tone-attention-bg: var(--amber-100);
+  --tone-attention-band: var(--amber-200);
+  --tone-attention-border: var(--amber-border);
+
+  --tone-high-fg: var(--red-700);
+  --tone-high-bg: var(--red-100);
+  --tone-high-band: var(--red-200);
+  --tone-high-border: var(--red-border);
+
+  --tone-inconclusive-fg: var(--steel-700);
+  --tone-inconclusive-bg: var(--steel-100);
+
+  /* Avisos (Notice) */
+  --tone-info-fg: var(--steel-700);
+  --tone-info-bg: var(--steel-100);
+  --tone-success-fg: var(--green-700);
+  --tone-success-bg: var(--green-100);
+  --tone-warning-fg: var(--amber-700);
+  --tone-warning-bg: var(--amber-100);
+  --tone-error-fg: var(--red-700);
+  --tone-error-bg: var(--red-100);
+
+  /* ------------------------------------------------------------------------
+     2. SEMÂNTICOS — medidas de interface
+     ------------------------------------------------------------------------ */
+  /* RNF08: controles principais com área mínima de 48 × 48 px CSS. */
+  --target-min: 3rem;
+  --icon-size: 1.25rem;
+
+  --wrap-max: 77rem;
+  --gutter: 2.5rem;
+  --header-height: 5.875rem;
+}
+
+@media (max-width: 62.5em) {
+  :root {
+    --gutter: 1.5rem;
+  }
+}
+
+@media (max-width: 48.75em) {
+  :root {
+    --gutter: 1rem;
+    --header-height: 5rem;
+  }
+}
+
+@media (max-width: 32.5em) {
+  :root {
+    --text-body: 1rem; /* 16 px, como no protótipo */
+    --text-brand: 1.625rem; /* 26 px */
+  }
+}
+
+@media (min-width: 93.75em) {
+  :root {
+    --wrap-max: 82.5rem;
+  }
+}

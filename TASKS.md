@@ -72,12 +72,13 @@ regras de risco, abstenção e rastreabilidade de versões.
 - [ ] Feedback útil/não útil com consentimento (RF19)
 - [ ] Rate limiting, CSP, CORS restrito, HTTPS (RNF16)
 
-## Etapa 5 — Aplicação web
-- [ ] Páginas: início, análise, resultado, histórico, sobre, privacidade (RF23, RF30)
-- [ ] Formulário texto/URL com validação acessível (RF24)
-- [ ] Estados reais de processamento, sem progresso fictício (RF25, RNF17)
-- [ ] Resultado, fontes, orientação e resumo copiável (RF16–RF18, RF26)
-- [ ] WCAG 2.2 AA, responsivo 320–1.440 px, matriz de navegadores (RNF08, RNF14, RNF15)
+## Etapa 5 — Aplicação web (concluída via frontend/ apuraWeb)
+- [x] Páginas: início, análise, resultado, histórico, sobre, privacidade (RF23, RF30)
+- [x] Formulário texto/URL com validação acessível (RF24)
+- [x] Estados reais de processamento, sem progresso fictício (RF25, RNF17)
+- [x] Resultado, fontes, orientação e resumo copiável (RF16–RF18, RF26)
+- [x] WCAG 2.2 AA, responsivo 320–1.440 px, matriz de navegadores (RNF08, RNF14, RNF15)
+- [x] 808 testes automatizados com Vitest cobrindo fluxos, jornada e a11y axe
 
 ## Etapa 6 — Qualidade da IA e governança
 - [ ] Calibração (temperature scaling) em dados independentes (RNF04)

@@ -7,23 +7,25 @@ Plano de entrega por etapas: [TASKS.md](TASKS.md).
 
 ```text
 verificAI/
-├── apura/                      # Projeto Django
+├── apura/                      # Backend Django
 │   ├── manage.py
 │   ├── apura/                  # settings, urls, wsgi
-│   └── analysis/               # App de análise
-│       ├── api/                # API v1 (views, serializers, erros)
-│       ├── services/
-│       │   ├── classifier.py   # Carregamento do BERTimbau V4 + fatiamento (RF11/RF12)
-│       │   ├── preprocessing.py# Validação, idioma, PII (RF01/RF04/RF05)
-│       │   ├── risk.py         # Índice de risco, faixas, abstenção (RF13/RF14/RF16)
-│       │   └── pipeline.py     # Orquestração da análise
+│   └── analysis/               # App de análise (API v1, regras, fatiamento)
+│       ├── api/                # API REST v1 (views, serializers, erros)
+│       ├── services/           # classifier, preprocessing, risk, pipeline
 │       ├── rules/rules_v1.json # Pesos e limiares versionados
 │       └── tests/
-├── bert_fakenews_v4/           # Pesos do modelo (model.safetensors fora do Git)
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-├── nginx/default.conf
+├── frontend/                   # Interface Web (React 19 + Vite 8)
+│   ├── src/                    # Componentes, páginas, domínio, estado, estilos
+│   ├── public/                 # Favicons, manifesto e robôs
+│   ├── deploy/                 # Configuração Nginx e cabeçalhos de segurança
+│   ├── package.json
+│   ├── vite.config.js
+│   └── Dockerfile
+├── bert_fakenews_v4/           # Pesos do modelo (model.safetensors via Git LFS)
+├── docker-compose.yml          # Orquestração (db, web, nginx/frontend)
+├── Dockerfile                  # Imagem do backend Django
+├── requirements.txt            # Dependências Python
 └── .env.example
 ```
 
@@ -55,6 +57,7 @@ git lfs pull
 
 ## Rodando localmente (sem Docker)
 
+### 1. Back end (Django + BERTimbau)
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
@@ -66,7 +69,17 @@ cd apura
 
 O modelo é carregado de `bert_fakenews_v4/` (via Git LFS). Se a pasta contiver apenas o ponteiro LFS ou não existir, o download é feito automaticamente do Hugging Face Hub. Em Apple Silicon (Mac M1/M2/M3/M4), a inferência usa aceleração de hardware Metal (MPS) automaticamente.
 
-## Rodando com Docker
+### 2. Front end (React 19 + Vite 8)
+```bash
+cd frontend
+npm ci
+npm run dev                   # http://localhost:5173
+```
+O servidor de desenvolvimento do Vite repassa as chamadas de `/api` diretamente para o Django (`http://localhost:8000`).
+
+---
+
+## Rodando com Docker (Full-Stack)
 
 ```bash
 cp .env.example .env          # defina DJANGO_SECRET_KEY e DJANGO_DEBUG=false
@@ -76,7 +89,11 @@ docker compose exec web python manage.py createsuperuser
 docker compose exec web python manage.py collectstatic --no-input
 ```
 
-A aplicação fica em **`http://localhost`** (nginx → gunicorn → Django).
+A aplicação completa estará acessível em **`http://localhost`**:
+* **`/`**: Interface web (SPA React servida pelo Nginx).
+* **`/api/`**: API Django REST Framework.
+* **`/admin/`**: Painel administrativo do Django.
+* **`/static/`**: Arquivos estáticos do Django.
 
 ---
 
@@ -133,10 +150,18 @@ Status possíveis: `poucos_sinais_de_risco` (0–25), `requer_atencao` (>25–60
 
 ---
 
-## Testes
+## Testes Automatizados
 
+### Back end (Django)
 ```bash
 cd apura
 ../.venv/bin/python manage.py test analysis                    # rápido (modelo simulado)
 RUN_MODEL_TESTS=1 ../.venv/bin/python manage.py test analysis  # inclui o modelo real
+```
+
+### Front end (React / Vitest)
+```bash
+cd frontend
+npm test               # roda os 808 testes automatizados
+npm run check          # lint + typecheck + testes + build de produção
 ```

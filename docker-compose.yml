@@ -46,14 +46,14 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./frontend
     container_name: apura_nginx
     restart: always
     ports:
       - "80:80"
     volumes:
-      - ./nginx:/etc/nginx/conf.d
-      - static_volume:/code/apura/static
+      - static_volume:/code/apura/static:ro
     depends_on:
       - web
 

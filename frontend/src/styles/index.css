@@ -1,0 +1,6 @@
+/* Ordem de leitura do CSS: valores → elementos → estrutura → componentes → páginas. */
+@import './tokens.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './pages.css';

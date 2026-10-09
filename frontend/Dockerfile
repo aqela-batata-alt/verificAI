@@ -1,0 +1,39 @@
+# Apura Web: build da interface (Node) e publicação num nginx (mesma origem da API, ADR-006).
+# Uso (a partir desta pasta):  docker build -t apura-web .
+# Dentro do docker compose do back end, este contêiner substitui o serviço "nginx" (veja o README).
+
+FROM node:22-alpine AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+# Tudo o que começa com VITE_ vai para o pacote enviado ao navegador (RNF16): nunca coloque segredos aqui.
+# Os padrões abaixo são os de .env.example; troque com --build-arg quando precisar.
+ARG VITE_API_BASE_URL=/api
+ARG VITE_REQUEST_TIMEOUT_MS=30000
+ARG VITE_FEATURE_URL_INPUT=true
+ARG VITE_ACCOUNTS_MODE=demo
+ARG VITE_FEEDBACK_MODE=demo
+ARG VITE_BACKEND_URL_ANALYSIS=false
+ARG VITE_BACKEND_SOURCES=false
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_REQUEST_TIMEOUT_MS=$VITE_REQUEST_TIMEOUT_MS \
+    VITE_FEATURE_URL_INPUT=$VITE_FEATURE_URL_INPUT \
+    VITE_ACCOUNTS_MODE=$VITE_ACCOUNTS_MODE \
+    VITE_FEEDBACK_MODE=$VITE_FEEDBACK_MODE \
+    VITE_BACKEND_URL_ANALYSIS=$VITE_BACKEND_URL_ANALYSIS \
+    VITE_BACKEND_SOURCES=$VITE_BACKEND_SOURCES
+
+RUN npm run build
+
+FROM nginx:1.27-alpine
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY deploy/security-headers.conf /etc/nginx/snippets/apura-security-headers.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1

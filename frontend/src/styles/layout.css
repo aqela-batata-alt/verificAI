@@ -1,0 +1,354 @@
+/* ==========================================================================
+   Estrutura da página: atalho de teclado, aviso de demonstração, cabeçalho,
+   navegação, rodapé e cabeçalhos de página. Só usa tokens (tokens.css).
+   ========================================================================== */
+
+/* ---- Atalho "Ir para o conteúdo" (WCAG 2.4.1) --------------------------- */
+
+.skip-link {
+  position: absolute;
+  top: -5rem;
+  left: var(--space-4);
+  z-index: calc(var(--z-header) + 1);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-dark);
+  color: var(--color-text-on-dark);
+  font-weight: var(--weight-bold);
+}
+
+.skip-link:focus {
+  top: var(--space-3);
+}
+
+/* ---- Aviso de demonstração --------------------------------------------- */
+
+.demo-bar {
+  background: var(--color-surface-dark);
+  color: var(--color-text-on-dark-muted);
+  font-size: var(--text-small);
+  line-height: var(--leading-snug);
+}
+
+.demo-bar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-4);
+  min-height: var(--target-min);
+}
+
+.demo-bar strong {
+  color: var(--color-text-on-dark-accent);
+  letter-spacing: 0.04em;
+}
+
+.demo-bar a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: var(--color-text-on-dark-soft);
+}
+
+.demo-bar :focus-visible {
+  outline-color: var(--color-focus-inner);
+  box-shadow: none;
+}
+
+/* ---- Cabeçalho ---------------------------------------------------------- */
+
+.site-header {
+  position: relative;
+  z-index: var(--z-header);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-header-surface);
+}
+
+.site-header__row {
+  display: flex;
+  flex-wrap: wrap; /* com fonte ampliada, o botão "Menu" desce em vez de passar da tela */
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-8);
+  min-height: var(--header-height);
+  padding-block: var(--space-2);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-3);
+  min-height: var(--target-min);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.brand__mark {
+  width: 3.25rem;
+  height: auto;
+}
+
+.brand__name {
+  font-family: var(--font-serif);
+  font-size: var(--text-brand);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.site-nav {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.site-nav__list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.site-nav a:not(.btn) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+}
+
+.site-nav a:not(.btn):hover {
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.site-nav a[aria-current='page']:not(.btn)::after {
+  content: '';
+  position: absolute;
+  bottom: 0.25rem;
+  left: 0;
+  width: 1.125rem;
+  height: 3px;
+  background: var(--color-accent);
+}
+
+.menu-button {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-small);
+  font-weight: var(--weight-bold);
+}
+
+/* ---- Rodapé ------------------------------------------------------------- */
+
+.site-footer {
+  padding-block: var(--space-8);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+}
+
+.site-footer__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.site-footer__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+}
+
+/* A frase fica ao lado da marca e só desce quando nem 8rem sobram (fonte ampliada). */
+.site-footer__left p {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.site-footer .brand__mark {
+  width: 2.5rem;
+}
+
+.site-footer .brand__name {
+  font-size: var(--text-brand-footer);
+}
+
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-6);
+}
+
+.site-footer__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+  color: var(--color-text);
+}
+
+/* ---- Cabeçalho de página ------------------------------------------------ */
+
+.screen {
+  padding: var(--space-10) 0 var(--space-16);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.page-heading h1 {
+  margin: var(--space-4) 0 var(--space-3);
+  font-size: var(--text-h1);
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.page-heading__lead {
+  max-width: 39rem;
+  font-size: var(--text-ui);
+  color: var(--color-text-muted);
+}
+
+.page-heading__action {
+  flex: none;
+}
+
+/* ---- Telas menores ------------------------------------------------------ */
+
+@media (max-width: 62.5em) {
+  .site-header__row {
+    gap: var(--space-5);
+  }
+
+  .site-nav__list {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 48.75em) {
+  .menu-button {
+    display: inline-flex;
+  }
+
+  /* No celular a navegação vira um painel logo abaixo do cabeçalho, aberto pelo botão "Menu". */
+  .site-nav {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--gutter) var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sheet);
+  }
+
+  .site-nav[data-open='true'] {
+    display: flex;
+  }
+
+  .site-nav__list {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .site-nav a:not(.btn) {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-quiet);
+  }
+
+  .site-nav a[aria-current='page']:not(.btn)::after {
+    display: none;
+  }
+
+  .site-nav a[aria-current='page']:not(.btn) {
+    box-shadow: inset 4px 0 0 var(--color-accent);
+  }
+
+  .site-nav .btn {
+    width: 100%;
+  }
+
+  .site-footer__row {
+    align-items: flex-start;
+  }
+
+  .site-footer__left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  /* Em coluna, "8rem" seria uma altura: volta ao tamanho do próprio texto. */
+  .site-footer__left p {
+    flex: 0 1 auto;
+  }
+
+  .page-heading {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 32.5em) {
+  .brand__mark {
+    width: 2.75rem;
+  }
+
+  .screen {
+    padding: var(--space-6) 0 var(--space-10);
+  }
+
+  .page-heading {
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .site-footer__row {
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .site-footer__left {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .site-footer__left p {
+    flex: 1 1 8rem;
+  }
+}
