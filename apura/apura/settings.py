@@ -192,6 +192,11 @@ FAKE_EYES = {
     # Limites de entrada (RF01)
     "MIN_CHARS": 50,
     "MAX_CHARS": 5000,
+    # Integrações externas opcionais
+    "GOOGLE_FACT_CHECK_API_KEY": os.environ.get("GOOGLE_FACT_CHECK_API_KEY") or os.environ.get("GOOGLE_API_KEY", ""),
+    "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", ""),
+    "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+    "GROQ_API_KEY": os.environ.get("GROQ_API_KEY", ""),
 }
 
 

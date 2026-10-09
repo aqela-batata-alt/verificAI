@@ -41,25 +41,31 @@ def _explanation(obj: Analysis) -> list[str]:
     """Explicação em linguagem simples (RF17), separando modelo, indicadores e fontes."""
     tech = obj.technical or {}
     ling = tech.get("linguistic_indicators", {})
+    llm_info = tech.get("llm_analysis", {})
     items: list[str] = []
 
     if obj.status == Analysis.Status.INCONCLUSIVE:
         items.extend(risk.ABSTENTION_MESSAGES.get(r, r) for r in obj.abstention_reasons)
-    else:
+
+    # Síntese e motivos gerados pela LLM / motor analítico ("por isso e por isso")
+    if llm_info.get("summary"):
+        items.append(llm_info["summary"])
+    if llm_info.get("key_points"):
+        items.extend(llm_info["key_points"])
+
+    if not llm_info:
         if obj.model_label == "falsa":
             items.append("O padrão de escrita do texto se parece com o de notícias falsas vistas no treinamento do modelo.")
         else:
             items.append("O padrão de escrita do texto se parece com o de notícias verdadeiras vistas no treinamento do modelo.")
 
     terms = ling.get("sensational_terms") or []
-    if terms:
+    if terms and not any(terms[0] in it for it in items):
         items.append("Foram encontradas expressões apelativas: " + ", ".join(f"“{t}”" for t in terms) + ".")
     if ling.get("components", {}).get("caps", 0) >= 0.5:
         items.append("O texto usa muitas palavras em caixa alta.")
     if ling.get("components", {}).get("punctuation", 0) >= 0.5:
         items.append("O texto usa pontuação excessiva, como várias exclamações.")
-    if terms or ling.get("signal", 0) > 0:
-        items.append("Esses indicadores de linguagem são apenas sinais auxiliares e não provam que a notícia é falsa.")
     return items
 
 
@@ -123,7 +129,7 @@ class AnalysisResultSerializer(serializers.ModelSerializer):
         return (obj.technical or {}).get("linguistic_indicators", {})
 
     def get_evidence(self, obj):
-        return (obj.technical or {}).get("evidence", {"enabled": False, "sources": []})
+        return (obj.technical or {}).get("evidence", {"enabled": True, "sources": []})
 
     def get_risk(self, obj):
         return (obj.technical or {}).get("risk", {})

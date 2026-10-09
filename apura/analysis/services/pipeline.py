@@ -1,8 +1,10 @@
 """
-Orquestração do fluxo de análise (Etapa 1: entrada por texto).
+Orquestração do fluxo de análise (Etapas 1, 2 e 3: texto e URL).
 
-validação → normalização → classificação → indicadores → risco → abstenção →
-persistência sem texto bruto → resposta.
+validação/raspagem → normalização → classificação BERTimbau (com [SEP]) →
+indicadores linguísticos → checagem de fatos na internet (Google Fact Check) →
+síntese e explicação via LLM → cálculo de risco ponderado → abstenção →
+persistência segura sem texto bruto → resposta.
 """
 
 from __future__ import annotations
@@ -15,9 +17,10 @@ from functools import lru_cache
 from django.conf import settings
 
 from ..models import Analysis
-from . import risk
+from . import factcheck, llm, risk
 from .classifier import get_classifier
 from .preprocessing import NewsInput, build_news_input, summarize_claim
+from .scraper import scrape_url
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +44,7 @@ def code_version() -> str:
 def _limitations(news: NewsInput, cls, rules: risk.Rules, evidence_enabled: bool) -> list[str]:
     items = [
         "O resultado é um apoio à avaliação e não substitui a verificação em fontes confiáveis.",
-        "O índice de risco é um indicador e não representa a probabilidade de a notícia ser falsa.",
+        "O índice de risco é um indicador probabilístico e não representa certeza factual absoluta.",
     ]
     if not evidence_enabled:
         items.append("A consulta a fontes externas ainda não está habilitada; nenhuma evidência foi verificada.")
@@ -56,29 +59,56 @@ def _limitations(news: NewsInput, cls, rules: risk.Rules, evidence_enabled: bool
     return items
 
 
-def run_text_analysis(*, text: str, title: str = "", subtitle: str = "", user=None, visitor_id: str = "") -> Analysis:
-    started = time.perf_counter()
+def _execute_pipeline(
+    *,
+    news: NewsInput,
+    input_type: str,
+    source_domain: str = "",
+    user=None,
+    visitor_id: str = "",
+    started: float,
+) -> Analysis:
     rules = risk.load_rules()
-    news = build_news_input(text=text, title=title, subtitle=subtitle)
 
+    # 1. Inferência do modelo BERTimbau V4 (com fatiamento determinístico e tokens [SEP])
     classifier = get_classifier()
     temperature = float(rules.calibrator.get("temperature", 1.0))
     cls = classifier.classify(news.title, news.subtitle, news.body, temperature=temperature)
 
+    # 2. Indicadores estilísticos e linguísticos
     ling = risk.linguistic_indicators(news.full_text, rules.linguistic)
-    evidence_enabled = False  # Etapa 3
+
+    # 3. Busca de checagens na internet (Google Fact Check Tools / Agências de Checagem)
+    claim_query = news.title or summarize_claim(news)
+    fact_res = factcheck.search_fact_checks(claim_query)
+    evidence_conflict = fact_res.get("conflict_score")
+
+    # 4. Síntese explicativa via LLM (Gemini / OpenAI / Síntese Neural Especializada)
+    llm_res = llm.synthesize_explanation(
+        title=news.title,
+        body=news.body,
+        model_fake_prob=cls.fake_probability,
+        model_confidence=cls.confidence,
+        model_label=cls.label,
+        linguistic_indicators=ling,
+        sources=fact_res.get("sources", []),
+    )
+
+    # 5. Cálculo do Índice de Risco Ponderado
     signals = {
         "model_fake_probability": cls.fake_probability,
         "linguistic_indicators": ling["signal"],
-        "evidence_conflict": None,  # ausente até a Etapa 3
+        "evidence_conflict": evidence_conflict,
     }
     risk_info = risk.compute_risk_index(signals, rules.weights)
 
+    # 6. Regra de Abstenção Probabilística (RF14)
+    evidence_available = bool(fact_res.get("sources"))
     reasons = risk.abstention_reasons(
         rules=rules,
         model_confidence=cls.confidence,
         chunk_disagreement=cls.chunk_disagreement,
-        evidence_available=None if not evidence_enabled else False,
+        evidence_available=evidence_available,
     )
     if reasons or risk_info["value"] is None:
         status = risk.STATUS_INCONCLUSIVE
@@ -99,20 +129,33 @@ def run_text_analysis(*, text: str, title: str = "", subtitle: str = "", user=No
             },
         },
         "calibrator": rules.calibrator,
-        "evidence": {"enabled": evidence_enabled, "sources": []},
+        "evidence": {
+            "enabled": True,
+            "status": fact_res.get("status", "none"),
+            "sources": fact_res.get("sources", []),
+        },
+        "llm_analysis": {
+            "summary": llm_res.summary,
+            "key_points": llm_res.key_points,
+            "provider": llm_res.provider,
+            "verdict_tendency": llm_res.verdict_tendency,
+        },
         "input": {
-            "title_provided": bool(title.strip()),
+            "type": input_type,
+            "domain": source_domain,
+            "title_provided": bool(news.title.strip()),
             "title_inferred": news.title_inferred,
             "subtitle_provided": bool(news.subtitle),
             "characters": len(news.full_text),
         },
-        "limitations": _limitations(news, cls, rules, evidence_enabled),
+        "limitations": _limitations(news, cls, rules, evidence_enabled=True),
     }
 
     analysis = Analysis.objects.create(
         user=user if getattr(user, "is_authenticated", False) else None,
         visitor_id=visitor_id[:64],
-        input_type=Analysis.InputType.TEXT,
+        input_type=input_type,
+        source_domain=source_domain,
         claim_summary=summarize_claim(news),
         status=status,
         risk_index=None if status == risk.STATUS_INCONCLUSIVE else risk_info["value"],
@@ -129,9 +172,37 @@ def run_text_analysis(*, text: str, title: str = "", subtitle: str = "", user=No
         code_version=code_version(),
         duration_ms=round((time.perf_counter() - started) * 1000, 2),
     )
-    # Log técnico sem texto bruto (RNF10)
+
     logger.info(
-        "analysis id=%s status=%s risk=%s conf=%.3f chunks=%d ms=%.1f",
-        analysis.id, status, analysis.risk_index, cls.confidence, cls.chunks_analyzed, analysis.duration_ms,
+        "analysis id=%s type=%s status=%s risk=%s conf=%.3f chunks=%d sources=%d ms=%.1f",
+        analysis.id, input_type, status, analysis.risk_index, cls.confidence,
+        cls.chunks_analyzed, len(fact_res.get("sources", [])), analysis.duration_ms,
     )
     return analysis
+
+
+def run_text_analysis(*, text: str, title: str = "", subtitle: str = "", user=None, visitor_id: str = "") -> Analysis:
+    started = time.perf_counter()
+    news = build_news_input(text=text, title=title, subtitle=subtitle)
+    return _execute_pipeline(
+        news=news,
+        input_type=Analysis.InputType.TEXT,
+        source_domain="",
+        user=user,
+        visitor_id=visitor_id,
+        started=started,
+    )
+
+
+def run_url_analysis(*, url: str, user=None, visitor_id: str = "") -> Analysis:
+    started = time.perf_counter()
+    scraped = scrape_url(url)
+    news = build_news_input(text=scraped.body, title=scraped.title, subtitle=scraped.subtitle)
+    return _execute_pipeline(
+        news=news,
+        input_type=Analysis.InputType.URL,
+        source_domain=scraped.domain,
+        user=user,
+        visitor_id=visitor_id,
+        started=started,
+    )

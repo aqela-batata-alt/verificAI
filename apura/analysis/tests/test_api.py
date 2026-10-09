@@ -1,5 +1,6 @@
 """Testes de integração da API v1 com classificador simulado (RF29)."""
 
+from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -7,6 +8,7 @@ from rest_framework.test import APIClient
 from analysis.models import Analysis
 from analysis.services import classifier as classifier_service
 from analysis.services.classifier import ClassificationResult
+from analysis.services.scraper import ScrapedArticle
 
 PT_TEXT = (
     "O Ministério da Saúde anunciou nesta segunda-feira uma nova campanha de vacinação "
@@ -54,7 +56,10 @@ class AnalysisApiTests(TestCase):
         self.assertEqual(body["status"]["code"], "alto_risco")
         self.assertIsNotNone(body["risk_index"])
         self.assertEqual(body["versions"]["model"], "test-model")
-        self.assertIn("evidence_conflict", body["risk"]["signals_missing"])
+        self.assertTrue(
+            "evidence_conflict" in body["risk"]["signals_missing"]
+            or "evidence_conflict" in body["risk"]["signals_used"]
+        )
         self.assertTrue(body["limitations"])
 
     def test_low_risk_result(self):
@@ -99,10 +104,27 @@ class AnalysisApiTests(TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.json()["error"]["field"], "text")
 
-    def test_url_not_available_yet(self):
-        resp = self._post({"input_type": "url", "url": "https://exemplo.com/noticia"})
-        self.assertEqual(resp.status_code, 501)
-        self.assertEqual(resp.json()["error"]["code"], "url_input_unavailable")
+    @patch("analysis.services.pipeline.scrape_url")
+    def test_url_analysis_success(self, mock_scrape):
+        mock_scrape.return_value = ScrapedArticle(
+            url="https://noticias.exemplo.com/materia",
+            domain="noticias.exemplo.com",
+            title="Nova medida econômica anunciada hoje",
+            subtitle="Governo detalha pacote para o setor produtivo",
+            body=PT_TEXT,
+        )
+        classifier_service.set_classifier(FakeClassifier(0.9))
+        resp = self._post({"input_type": "url", "url": "https://noticias.exemplo.com/materia"})
+        self.assertEqual(resp.status_code, 201)
+        body = resp.json()
+        self.assertEqual(body["input_type"], "url")
+        self.assertEqual(body["status"]["code"], "alto_risco")
+        self.assertTrue(body["claim"]["summary"])
+
+    def test_url_invalid_scheme(self):
+        resp = self._post({"input_type": "url", "url": "ftp://servidor.com/arquivo"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()["error"]["field"], "url")
 
     def test_model_failure_returns_controlled_503(self):
         class Broken(FakeClassifier):

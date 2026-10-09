@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from ..models import Analysis
 from ..services import classifier as classifier_service
 from ..services import risk
-from ..services.pipeline import SCHEMA_VERSION, code_version, run_text_analysis
+from ..services.pipeline import SCHEMA_VERSION, code_version, run_text_analysis, run_url_analysis
 from ..services.preprocessing import InputValidationError
 from .errors import error_response
 from .serializers import AnalysisRequestSerializer, AnalysisResultSerializer
@@ -27,22 +27,21 @@ class AnalysisCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        if data["input_type"] == Analysis.InputType.URL:
-            return error_response(
-                "url_input_unavailable",
-                "A análise por endereço (URL) ainda não está disponível nesta versão.",
-                "Cole o texto da notícia e selecione a opção de texto.",
-                status.HTTP_501_NOT_IMPLEMENTED, field="url",
-            )
-
         try:
-            analysis = run_text_analysis(
-                text=data["text"],
-                title=data.get("title", ""),
-                subtitle=data.get("subtitle", ""),
-                user=request.user,
-                visitor_id=request.headers.get("X-Visitor-Id", ""),
-            )
+            if data["input_type"] == Analysis.InputType.URL:
+                analysis = run_url_analysis(
+                    url=data["url"],
+                    user=request.user,
+                    visitor_id=request.headers.get("X-Visitor-Id", ""),
+                )
+            else:
+                analysis = run_text_analysis(
+                    text=data["text"],
+                    title=data.get("title", ""),
+                    subtitle=data.get("subtitle", ""),
+                    user=request.user,
+                    visitor_id=request.headers.get("X-Visitor-Id", ""),
+                )
         except InputValidationError as exc:
             return error_response(exc.code, exc.message, exc.action, status.HTTP_400_BAD_REQUEST,
                                   field=exc.field, details=exc.extra or None)

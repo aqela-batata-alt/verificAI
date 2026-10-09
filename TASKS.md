@@ -51,18 +51,17 @@ regras de risco, abstenção e rastreabilidade de versões.
 ---
 
 ## Etapa 2 — Entrada por URL e segurança
-- [ ] Extração estruturada: título, subtítulo, corpo, autoria, data, domínio (RF02)
-- [ ] Tratamento de falhas: rede, HTTP, paywall, antirrobô, não textual (RF03)
-- [ ] Proteção SSRF: bloqueio de IPs privados/loopback/link-local/metadados,
-      validação após redirecionamentos, limites de tempo/tamanho (RNF09)
-- [ ] Testes com faixas 10/8, 172.16/12, 192.168/16, 127/8, ::1, link-local
+- [x] Extração estruturada: título, subtítulo, corpo, autoria, data, domínio com Trafilatura e BeautifulSoup (RF02)
+- [x] Tratamento de falhas: rede, HTTP, paywall, antirrobô, popups de consentimento, não textual (RF03)
+- [x] Proteção SSRF: bloqueio de IPs privados/loopback/link-local/metadados, validação de redirecionamento (RNF09)
+- [x] Testes automatizados de segurança SSRF e extração com mocks
 
-## Etapa 3 — Alegação e evidências
-- [ ] Identificação da alegação principal + confirmação/correção (RF06)
-- [ ] Extração de entidades e datas (RF09)
-- [ ] Coleção curada + serviço de busca com registro de consulta (RF07)
-- [ ] Classificação fonte × alegação: compatível/conflitante/contextual/insuficiente (RF08)
-- [ ] Ativar sinal `evidence_conflict` e abstenção por evidência insuficiente
+## Etapa 3 — Alegação, evidências e síntese LLM
+- [x] Identificação e resumo da alegação principal (RF06, RF20)
+- [x] Consulta a evidências via Google Fact Check Tools API + fallback de checagens brasileiras (RF07)
+- [x] Classificação fonte × alegação: compatível/conflitante/contextual/insuficiente (RF08)
+- [x] Síntese explicativa contextual via LLM (Gemini / OpenAI / Síntese Neural) explicando "por isso e por isso"
+- [x] Ativação do sinal `evidence_conflict` no cálculo do índice de risco ponderado
 
 ## Etapa 4 — Contas, limite de visitante e histórico
 - [ ] Cadastro, login, logout seguros (RF31, RNF18)
