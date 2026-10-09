@@ -137,6 +137,15 @@ describe('RF16: status e índice', () => {
     expect(items[1]).toHaveAttribute('aria-current', 'true')
   })
 
+  it('exibe a probabilidade calculada pelo modelo com destaque na tela', () => {
+    const { container } = openCached(makeApiAnalysis())
+    expect(screen.getByText('Probabilidade calculada pelo modelo')).toBeInTheDocument()
+    expect(container.querySelector('.model-prob-card__headline')).toHaveTextContent(/62% de chance de ser falsa/)
+    expect(screen.getByText('Confiança estatística: 86%')).toBeInTheDocument()
+    expect(screen.getByText(/Chance de ser verdadeira:/)).toBeInTheDocument()
+    expect(screen.getByText(/Chance de ser falsa:/)).toBeInTheDocument()
+  })
+
   it('análise inconclusiva: sem índice, sem escala, e diz que não é veredito', () => {
     openCached(apiInconclusive())
     expect(screen.getByRole('heading', { level: 2, name: 'Análise inconclusiva' })).toBeInTheDocument()

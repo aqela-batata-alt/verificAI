@@ -1,5 +1,5 @@
 import { statusOf } from '../../domain/analysis.js'
-import { formatDateTime, formatNumber } from '../../domain/format.js'
+import { formatDateTime, formatNumber, formatPercent } from '../../domain/format.js'
 import { STATUS, STATUS_INFO } from '../../domain/status.js'
 import Notice from '../ui/Notice.jsx'
 import StatusBadge from '../ui/StatusBadge.jsx'
@@ -49,6 +49,59 @@ export default function VerdictCard({ analysis }) {
           ? 'Esta análise não chegou a uma conclusão. Isso não quer dizer que a notícia seja verdadeira nem que seja falsa.'
           : 'O índice é um indicador de risco. Ele não é a probabilidade de a notícia ser falsa nem uma certeza.'}
       </p>
+
+      {model && model.fakeProbability !== null ? (
+        <div className="model-prob-card">
+          <div className="model-prob-card__header">
+            <div>
+              <p className="model-prob-card__eyebrow">Probabilidade calculada pelo modelo</p>
+              <p className="model-prob-card__headline">
+                {model.fakeProbability >= 0.5 ? (
+                  <>
+                    <strong>{formatPercent(model.fakeProbability)}</strong> de chance de ser <strong>falsa</strong>
+                  </>
+                ) : (
+                  <>
+                    <strong>{formatPercent(Math.max(0, 1 - model.fakeProbability))}</strong> de chance de ser <strong>verdadeira</strong>
+                  </>
+                )}
+              </p>
+            </div>
+            {model.confidence !== null ? (
+              <span className="model-prob-card__confidence">
+                Confiança estatística: {formatPercent(model.confidence)}
+              </span>
+            ) : null}
+          </div>
+
+          <div
+            className="model-prob-card__track"
+            role="progressbar"
+            aria-valuenow={Math.round(model.fakeProbability * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Probabilidade calculada pelo modelo de ser falsa"
+          >
+            <span
+              className="model-prob-card__fill model-prob-card__fill--true"
+              style={{ width: `${Math.round(Math.max(0, 1 - model.fakeProbability) * 100)}%` }}
+            />
+            <span
+              className="model-prob-card__fill model-prob-card__fill--fake"
+              style={{ width: `${Math.round(model.fakeProbability * 100)}%` }}
+            />
+          </div>
+
+          <div className="model-prob-card__breakdown">
+            <span className="model-prob-card__label-true">
+              Chance de ser verdadeira: <strong>{formatPercent(Math.max(0, 1 - model.fakeProbability))}</strong>
+            </span>
+            <span className="model-prob-card__label-fake">
+              Chance de ser falsa: <strong>{formatPercent(model.fakeProbability)}</strong>
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {partial ? (
         <div className="verdict__partial">
